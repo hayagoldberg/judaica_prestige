@@ -74,15 +74,6 @@ footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 20p
 .zclose svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4}
 .zhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);pointer-events:none;transition:opacity .4s}
 .zoom.big .zhint{opacity:0}
-.photo{position:relative}
-.nb{position:absolute;right:10px;bottom:10px;padding:5px 10px 4px;background:rgba(255,255,255,.92);border:1px solid var(--line);font-size:.55rem;letter-spacing:.24em;text-transform:uppercase;color:var(--ink);pointer-events:none}
-.zarr{top:50%;translate:0 -50%;transition:opacity .3s}
-#zprev{left:10px}#znext{right:10px}
-.zdots{position:absolute;left:0;right:0;bottom:calc(46px + env(safe-area-inset-bottom));z-index:2;display:flex;justify-content:center;gap:12px;transition:opacity .3s}
-.zdots button{width:8px;height:8px;border-radius:50%;background:var(--line);padding:0}
-.zdots button.on{background:var(--ink)}
-.zoom.single .zarr,.zoom.single .zdots{display:none}
-.zoom.big .zarr,.zoom.big .zdots{opacity:0;pointer-events:none}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01s!important}.track{scroll-behavior:auto}}
 </style>
 </head>
@@ -104,25 +95,22 @@ footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 20p
 <div class="zoom" id="zoom" role="dialog" aria-modal="true" aria-label="Photo agrandie">
   <img id="zimg" alt="">
   <button class="zclose" id="zclose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-  <button class="arrow zarr" id="zprev" aria-label="Photo précédente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-  <button class="arrow zarr" id="znext" aria-label="Photo suivante"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-  <div class="zdots" id="zdots"></div>
-  <p class="zhint" id="zhint">Pincez ou touchez deux fois pour zoomer</p>
+  <p class="zhint">Pincez ou touchez deux fois pour zoomer</p>
 </div>
 <script>
 /* ============ Les 5 modèles du catalogue, de la plus petite à la plus grande ============ */
 const P = [
- {id:"B3",n:"Majestueuse",h:"42 cm",p:1390,img:"b3",img2:"b3-fond"},
+ {id:"B3",n:"Majestueuse",h:"42 cm",p:1390,img:"b3"},
  {id:"F1",n:"Corolle",h:"45 cm",p:1900,hz:1,img:"f1"},
- {id:"A2",n:"Classic",h:"50 cm",p:1890,img:"a2",img2:"a2-fond"},
- {id:"A1",n:"Royale",h:"50 cm",p:2000,img:"a1-2",img2:"a1-fond"},
- {id:"E3",n:"Dentelle",h:"52 cm",p:2600,hz:1,img:"e3",img2:"e3-fond"}
+ {id:"A2",n:"Classic",h:"50 cm",p:1890,img:"a2"},
+ {id:"A1",n:"Royale",h:"50 cm",p:2000,img:"a1-2"},
+ {id:"E3",n:"Dentelle",h:"52 cm",p:2600,hz:1,img:"e3"}
 ];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const track=$("#track");
 track.innerHTML=P.map(m=>`
  <section class="slide" aria-label="Hanoukkia ${m.n}">
-  <div class="photo"><img src="img/${m.img}.webp" alt="Hanoukkia ${m.n}">${m.img2?'<span class="nb">2 photos</span>':""}</div>
+  <div class="photo"><img src="img/${m.img}.webp" alt="Hanoukkia ${m.n}"></div>
   <div class="info">
    <p class="ref">Réf. ${m.id}${m.hz?'<span class="hz">✦ Hatzorfim</span>':""}</p>
    <h1>${m.n}</h1>
@@ -148,7 +136,7 @@ addEventListener("resize",()=>track.scrollTo({left:cur*track.clientWidth,behavio
 mark(0);
 
 /* ---- full-screen zoom: pinch, double tap, drag, mouse wheel ---- */
-{const box=$("#zoom"),zi=$("#zimg");let s=1,tx=0,ty=0,list=[],idx=0;const pts=new Map();let pinch=null,pan=null,lastTap=0,moved=false;
+{const box=$("#zoom"),zi=$("#zimg");let s=1,tx=0,ty=0;const pts=new Map();let pinch=null,pan=null,lastTap=0,moved=false;
  const MAX=5;
  const apply=()=>{zi.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;box.classList.toggle("big",s>1.01);};
  const clamp=()=>{if(s<=1){s=1;tx=0;ty=0;return;}
@@ -157,33 +145,23 @@ mark(0);
  const rel=(x,y)=>[x-innerWidth/2,y-innerHeight/2];      // point relative to screen centre
  const zoomAt=(ns,x,y)=>{ns=Math.min(MAX,Math.max(1,ns));const[qx,qy]=rel(x,y);tx=qx-(qx-tx)*ns/s;ty=qy-(qy-ty)*ns/s;s=ns;clamp();};
  const smooth=on=>zi.style.transition=on?"transform .35s cubic-bezier(.2,.8,.2,1)":"none";
- function show(i,dir){idx=(i+list.length)%list.length;zi.src=list[idx];s=1;tx=ty=0;smooth(false);apply();
-   $$("#zdots button").forEach((d,k)=>d.classList.toggle("on",k===idx));
-   $("#zhint").textContent=list.length>1?"Glissez pour l'autre photo · pincez pour zoomer":"Pincez ou touchez deux fois pour zoomer";
-   if(dir)zi.animate([{opacity:0,transform:`translateX(${dir*70}px)`},{opacity:1,transform:"none"}],{duration:380,easing:"cubic-bezier(.2,.8,.2,1)"});}
- function open(srcs,alt,i=0){list=srcs;zi.alt=alt;box.classList.toggle("single",list.length<2);
-   $("#zdots").innerHTML=list.map((_,k)=>`<button aria-label="Photo ${k+1}"></button>`).join("");show(i,0);box.classList.add("open");}
+ function open(src,alt){zi.src=src;zi.alt=alt;s=1;tx=ty=0;smooth(false);apply();box.classList.add("open");}
  function close(){box.classList.remove("open","big");pts.clear();pinch=pan=null;}
  window.openZoom=open;window.zoomAt=(ns,x,y)=>{smooth(true);zoomAt(ns,x,y);apply();};
- track.addEventListener("click",e=>{const im=e.target.closest(".photo img");if(!im)return;const m=P[slides.indexOf(im.closest(".slide"))];
-   open([m.img,m.img2].filter(Boolean).map(x=>`img/${x}.webp`),im.alt);});
- $("#zprev").addEventListener("click",()=>show(idx-1,-1));$("#znext").addEventListener("click",()=>show(idx+1,1));
- $("#zdots").addEventListener("click",e=>{const d=e.target.closest("button");if(!d)return;const k=[...d.parentNode.children].indexOf(d);if(k!==idx)show(k,k>idx?1:-1);});
+ track.addEventListener("click",e=>{const im=e.target.closest(".photo img");if(im)open(im.src,im.alt);});
  $("#zclose").addEventListener("click",close);
- addEventListener("keydown",e=>{if(!box.classList.contains("open"))return;if(e.key==="Escape")close();
-   if(list.length>1&&e.key==="ArrowRight"){e.stopImmediatePropagation();show(idx+1,1);}if(list.length>1&&e.key==="ArrowLeft"){e.stopImmediatePropagation();show(idx-1,-1);}},true);
- box.addEventListener("pointerdown",e=>{if(e.target.closest(".zclose,.zarr,.zdots"))return;try{box.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;smooth(false);
+ addEventListener("keydown",e=>{if(e.key==="Escape"&&box.classList.contains("open"))close();});
+ box.addEventListener("pointerdown",e=>{if(e.target.closest(".zclose"))return;try{box.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;smooth(false);
    if(pts.size===2){const[a,b]=[...pts.values()];const m=[(a.x+b.x)/2,(a.y+b.y)/2];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s0:s,tx0:tx,ty0:ty,q0:rel(...m)};pan=null;}
    else if(pts.size===1)pan={x:e.clientX,y:e.clientY,tx0:tx,ty0:ty};});
  box.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
    if(pinch&&pts.size>=2){const[a,b]=[...pts.values()];const ns=Math.min(MAX,Math.max(1,pinch.s0*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));
      const[qx,qy]=rel((a.x+b.x)/2,(a.y+b.y)/2);tx=qx-(pinch.q0[0]-pinch.tx0)*ns/pinch.s0;ty=qy-(pinch.q0[1]-pinch.ty0)*ns/pinch.s0;s=ns;clamp();apply();moved=true;}
-   else if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.hypot(dx,dy)>6)moved=true;if(s>1){tx=pan.tx0+dx;ty=pan.ty0+dy;clamp();apply();}else if(list.length>1){tx=dx;ty=0;apply();}}});
+   else if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.hypot(dx,dy)>6)moved=true;if(s>1){tx=pan.tx0+dx;ty=pan.ty0+dy;clamp();apply();}}});
  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
    if(pts.size<2)pinch=null;
    if(pts.size===1){const p=[...pts.values()][0];pan={x:p.x,y:p.y,tx0:tx,ty0:ty};}
    if(pts.size===0){pan=null;
-     if(moved&&s<=1.01&&list.length>1){if(Math.abs(tx)>60){const d=tx<0?1:-1;show(idx+d,d);}else{smooth(true);tx=0;apply();}return;}
      if(!moved&&e.type==="pointerup"){const now=Date.now();
        if(now-lastTap<320){lastTap=0;smooth(true);if(s>1.01){s=1;tx=ty=0;}else zoomAt(2.6,e.clientX,e.clientY);apply();}
        else{lastTap=now;if(s<=1.01&&e.target===box)setTimeout(()=>{if(lastTap===now)close();},330);}}}};
