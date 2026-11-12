@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Judaica Prestige — Catalogue Hanoukka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#191613;--muted:#7d756a;--line:#e7e1d6;--gold:#a8843f;
+  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Jost",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#f4f1ec;color:var(--ink);font-family:var(--sans);font-weight:300;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+img{display:block}
+
+/* one phone-sized column, also on large screens */
+.app{position:relative;height:100svh;width:min(100vw,480px);margin-inline:auto;background:#fff;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:1.05rem;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.logo small{display:block;font-family:var(--sans);font-size:.5rem;letter-spacing:.3em;color:var(--gold)}
+.logo svg{width:28px;height:28px}
+.counter{font-family:var(--serif);font-size:.9rem;letter-spacing:.2em;color:var(--muted);white-space:nowrap}
+.counter b{font-weight:400;font-size:1.4rem;color:var(--ink)}
+
+/* the 5 models side by side: swipe sideways */
+.track{display:flex;min-height:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.track::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;min-width:0;height:100%;scroll-snap-align:center;scroll-snap-stop:always;display:grid;grid-template-rows:1fr auto;padding:8px 0 0}
+.photo{min-height:0;overflow:hidden;background:#fff}
+.photo img{width:100%;height:100%;object-fit:contain;object-position:center;opacity:0;transform:scale(.96);transition:opacity 1s,transform 1.4s cubic-bezier(.2,.8,.2,1)}
+.slide.on .photo img{opacity:1;transform:none}
+.info{padding:10px 20px 10px;display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:2px 12px}
+.info>*{opacity:0;transform:translateY(14px);transition:opacity .8s,transform .8s cubic-bezier(.2,.8,.2,1)}
+.slide.on .info>*{opacity:1;transform:none}
+.slide.on .info>:nth-child(2){transition-delay:.08s}.slide.on .info>:nth-child(3){transition-delay:.16s}.slide.on .info>:nth-child(4){transition-delay:.24s}
+.ref{grid-column:1/-1;font-size:.6rem;letter-spacing:.36em;text-transform:uppercase;color:var(--muted)}
+.hz{display:inline-block;margin-left:10px;padding:2px 8px 1px;border:1px solid var(--gold);color:var(--gold);font-size:.55rem;letter-spacing:.24em;vertical-align:1px}
+h1{font-family:var(--serif);font-weight:400;font-size:1.45rem;line-height:1.2}
+.size{font-family:var(--serif);font-size:1.05rem;color:var(--muted)}
+.cost{font-family:var(--serif);font-size:1.3rem;color:var(--gold)}
+
+/* arrows over the photo */
+.arrow{position:absolute;top:44%;z-index:5;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.92);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12);transition:opacity .3s,background .3s,color .3s}
+.arrow:hover{background:var(--ink);color:#fff}
+.arrow:disabled{opacity:0;pointer-events:none}
+.arrow svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.4}
+#prev{left:8px}#next{right:8px}
+
+/* names at the bottom */
+footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 20px calc(14px + env(safe-area-inset-bottom))}
+.tab{position:relative;padding-top:10px;font-family:var(--serif);font-size:.82rem;color:var(--muted);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .4s}
+.tab::before{content:"";position:absolute;left:0;top:0;height:1px;width:100%;background:var(--line);transition:background .4s}
+.tab.on{color:var(--ink)}.tab.on::before{background:var(--ink)}
+
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01s!important}.track{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 40 40" fill="none" stroke="#a8843f" stroke-width="1.3" stroke-linecap="round"><path d="M20 8v26M12 34h16M20 30 5 12M20 26 9 12M20 22 13 12M20 18l-3-6M20 30l15-18M20 26l11-14M20 22l7-10M20 18l3-6"/></svg>
+      <span>Judaica Prestige<small>Catalogue Hanoukka 5787</small></span>
+    </div>
+    <div class="counter"><b id="cur">01</b> / 05</div>
+  </header>
+  <main class="track" id="track"></main>
+  <button class="arrow" id="prev" aria-label="Modèle précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="arrow" id="next" aria-label="Modèle suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  <footer id="tabs"></footer>
+</div>
+
+<script>
+/* ============ Les 5 modèles du catalogue, de la plus petite à la plus grande ============ */
+const P = [
+ {id:"B3",n:"Majestueuse",h:"42 cm",p:1500,img:"b3"},
+ {id:"F1",n:"Corolle",h:"45 cm",p:1900,hz:1,img:"f1"},
+ {id:"A2",n:"Classic",h:"50 cm",p:1890,img:"a2"},
+ {id:"A1",n:"Royale",h:"50 cm",p:2000,img:"a1-2"},
+ {id:"E3",n:"Dentelle",h:"52 cm",p:2600,hz:1,img:"e3"}
+];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const track=$("#track");
+track.innerHTML=P.map(m=>`
+ <section class="slide" aria-label="Hanoukkia ${m.n}">
+  <div class="photo"><img src="img/${m.img}.webp" alt="Hanoukkia ${m.n}"></div>
+  <div class="info">
+   <p class="ref">Réf. ${m.id}${m.hz?'<span class="hz">✦ Hatzorfim</span>':""}</p>
+   <h1>${m.n}</h1>
+   <p class="size">${m.h}</p>
+   <p class="cost">${m.p.toLocaleString("fr-FR")} €</p>
+  </div>
+ </section>`).join("");
+$("#tabs").innerHTML=P.map((m,i)=>`<button class="tab" data-i="${i}">${m.n}</button>`).join("");
+
+const slides=$$(".slide"),tabs=$$(".tab");
+let cur=-1;
+function mark(i){if(i===cur)return;cur=i;
+  slides.forEach((s,k)=>s.classList.toggle("on",k===i));
+  tabs.forEach((t,k)=>t.classList.toggle("on",k===i));
+  $("#cur").textContent=String(i+1).padStart(2,"0");
+  $("#prev").disabled=i===0;$("#next").disabled=i===P.length-1;}
+function go(i){i=Math.max(0,Math.min(P.length-1,i));track.scrollTo({left:i*track.clientWidth});}
+track.addEventListener("scroll",()=>mark(Math.round(track.scrollLeft/track.clientWidth)),{passive:true});
+$("#tabs").addEventListener("click",e=>{const t=e.target.closest(".tab");if(t)go(+t.dataset.i);});
+$("#prev").onclick=()=>go(cur-1);$("#next").onclick=()=>go(cur+1);
+addEventListener("keydown",e=>{if(e.key==="ArrowRight")go(cur+1);if(e.key==="ArrowLeft")go(cur-1);});
+addEventListener("resize",()=>track.scrollTo({left:cur*track.clientWidth,behavior:"instant"}));
+mark(0);
+</script>
+</body>
+</html>
