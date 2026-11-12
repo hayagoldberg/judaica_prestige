@@ -64,6 +64,16 @@ footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 20p
 .tab::before{content:"";position:absolute;left:0;top:0;height:1px;width:100%;background:var(--line);transition:background .4s}
 .tab.on{color:var(--ink)}.tab.on::before{background:var(--ink)}
 
+/* full-screen zoom */
+.photo img{cursor:zoom-in}
+.zoom{position:fixed;inset:0;z-index:50;background:#fff;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;touch-action:none;overflow:hidden;display:grid;place-items:center}
+.zoom.open{opacity:1;visibility:visible}
+.zoom img{display:block;max-width:100vw;max-height:100svh;transform-origin:50% 50%;will-change:transform;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;cursor:zoom-in}
+.zoom.big img{cursor:grab}
+.zclose{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:2;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.94);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.zclose svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4}
+.zhint{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);pointer-events:none;transition:opacity .4s}
+.zoom.big .zhint{opacity:0}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01s!important}.track{scroll-behavior:auto}}
 </style>
 </head>
@@ -82,6 +92,11 @@ footer{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 20p
   <footer id="tabs"></footer>
 </div>
 
+<div class="zoom" id="zoom" role="dialog" aria-modal="true" aria-label="Photo agrandie">
+  <img id="zimg" alt="">
+  <button class="zclose" id="zclose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <p class="zhint">Pincez ou touchez deux fois pour zoomer</p>
+</div>
 <script>
 /* ============ Les 5 modèles du catalogue, de la plus petite à la plus grande ============ */
 const P = [
@@ -119,6 +134,40 @@ $("#prev").onclick=()=>go(cur-1);$("#next").onclick=()=>go(cur+1);
 addEventListener("keydown",e=>{if(e.key==="ArrowRight")go(cur+1);if(e.key==="ArrowLeft")go(cur-1);});
 addEventListener("resize",()=>track.scrollTo({left:cur*track.clientWidth,behavior:"instant"}));
 mark(0);
+
+/* ---- full-screen zoom: pinch, double tap, drag, mouse wheel ---- */
+{const box=$("#zoom"),zi=$("#zimg");let s=1,tx=0,ty=0;const pts=new Map();let pinch=null,pan=null,lastTap=0,moved=false;
+ const MAX=5;
+ const apply=()=>{zi.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;box.classList.toggle("big",s>1.01);};
+ const clamp=()=>{if(s<=1){s=1;tx=0;ty=0;return;}
+   const mx=Math.max(0,(zi.offsetWidth*s-innerWidth)/2),my=Math.max(0,(zi.offsetHeight*s-innerHeight)/2);
+   tx=Math.min(mx,Math.max(-mx,tx));ty=Math.min(my,Math.max(-my,ty));};
+ const rel=(x,y)=>[x-innerWidth/2,y-innerHeight/2];      // point relative to screen centre
+ const zoomAt=(ns,x,y)=>{ns=Math.min(MAX,Math.max(1,ns));const[qx,qy]=rel(x,y);tx=qx-(qx-tx)*ns/s;ty=qy-(qy-ty)*ns/s;s=ns;clamp();};
+ const smooth=on=>zi.style.transition=on?"transform .35s cubic-bezier(.2,.8,.2,1)":"none";
+ function open(src,alt){zi.src=src;zi.alt=alt;s=1;tx=ty=0;smooth(false);apply();box.classList.add("open");}
+ function close(){box.classList.remove("open","big");pts.clear();pinch=pan=null;}
+ window.openZoom=open;window.zoomAt=(ns,x,y)=>{smooth(true);zoomAt(ns,x,y);apply();};
+ track.addEventListener("click",e=>{const im=e.target.closest(".photo img");if(im)open(im.src,im.alt);});
+ $("#zclose").addEventListener("click",close);
+ addEventListener("keydown",e=>{if(e.key==="Escape"&&box.classList.contains("open"))close();});
+ box.addEventListener("pointerdown",e=>{if(e.target.closest(".zclose"))return;try{box.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;smooth(false);
+   if(pts.size===2){const[a,b]=[...pts.values()];const m=[(a.x+b.x)/2,(a.y+b.y)/2];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s0:s,tx0:tx,ty0:ty,q0:rel(...m)};pan=null;}
+   else if(pts.size===1)pan={x:e.clientX,y:e.clientY,tx0:tx,ty0:ty};});
+ box.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(pinch&&pts.size>=2){const[a,b]=[...pts.values()];const ns=Math.min(MAX,Math.max(1,pinch.s0*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));
+     const[qx,qy]=rel((a.x+b.x)/2,(a.y+b.y)/2);tx=qx-(pinch.q0[0]-pinch.tx0)*ns/pinch.s0;ty=qy-(pinch.q0[1]-pinch.ty0)*ns/pinch.s0;s=ns;clamp();apply();moved=true;}
+   else if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.hypot(dx,dy)>6)moved=true;if(s>1){tx=pan.tx0+dx;ty=pan.ty0+dy;clamp();apply();}}});
+ const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
+   if(pts.size<2)pinch=null;
+   if(pts.size===1){const p=[...pts.values()][0];pan={x:p.x,y:p.y,tx0:tx,ty0:ty};}
+   if(pts.size===0){pan=null;
+     if(!moved&&e.type==="pointerup"){const now=Date.now();
+       if(now-lastTap<320){lastTap=0;smooth(true);if(s>1.01){s=1;tx=ty=0;}else zoomAt(2.6,e.clientX,e.clientY);apply();}
+       else{lastTap=now;if(s<=1.01&&e.target===box)setTimeout(()=>{if(lastTap===now)close();},330);}}}};
+ box.addEventListener("pointerup",up);box.addEventListener("pointercancel",up);
+ box.addEventListener("wheel",e=>{e.preventDefault();smooth(false);zoomAt(s*Math.exp(-e.deltaY*.0022),e.clientX,e.clientY);apply();},{passive:false});
+ addEventListener("resize",()=>{clamp();apply();});}
 </script>
 </body>
 </html>
